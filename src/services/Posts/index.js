@@ -20,14 +20,22 @@ const parser = multer({ storage: storage });
 
 route.post("/:id/upload", parser.single("image"), async (req, res, next) => {
   try {
-    const newPost = {
-      ...req.body,
-      image: req.file.path,
-    };
+    // const newPost = {
+    //   ...req.body,
+    //   image: req.file.path,
+    // };
 
-    const modifiedPost = await Post.findByIdAndUpdate(req.params.id, newPost, {
-      useFindAndModify: false,
-    });
+    const modifiedPost = await Post.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          image: req.file.path,
+        },
+      },
+      {
+        useFindAndModify: false,
+      }
+    );
 
     console.log(req.file.path);
     res.status(200).send(modifiedPost);
