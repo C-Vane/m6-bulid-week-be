@@ -1,9 +1,36 @@
 const express = require("express");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const multer = require("multer");
 const mongoose = require("mongoose");
 const Post = require("./schema");
 
 const route = express.Router();
 
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "linkedin",
+    format: async (req, file) => "png",
+    public_id: (req, file) => "image",
+  },
+});
+
+const parser = multer({ storage: storage });
+
+route.post("/upload", parser.single("image"), async (req, res, next) => {
+  try {
+    const postedImage = req.file;
+    res.status(200).send(postedImage);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+//----Not yet done----///
+
+//<-------------------------------------------------^ Image Upload ^---------------------------------------------------->//
 route.post("/", async (req, res, next) => {
   try {
     const newPost = new Post(req.body);
