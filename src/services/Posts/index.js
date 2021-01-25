@@ -11,17 +11,26 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "linkedin",
-    format: async (req, file) => "png",
+    format: async (req, file) => "png" || "jpg",
     public_id: (req, file) => "image",
   },
 });
 
 const parser = multer({ storage: storage });
 
-route.post("/upload", parser.single("image"), async (req, res, next) => {
+route.post("/:id/upload", parser.single("image"), async (req, res, next) => {
   try {
-    const postedImage = req.file;
-    res.status(200).send(postedImage);
+    const newPost = {
+      ...req.body,
+      image: req.file.path,
+    };
+
+    const modifiedPost = await Post.findByIdAndUpdate(req.params.id, newPost, {
+      useFindAndModify: false,
+    });
+
+    console.log(req.file.path);
+    res.status(200).send(modifiedPost);
   } catch (error) {
     console.log(error);
     next(error);
@@ -33,7 +42,11 @@ route.post("/upload", parser.single("image"), async (req, res, next) => {
 //<-------------------------------------------------^ Image Upload ^---------------------------------------------------->//
 route.post("/", async (req, res, next) => {
   try {
-    const newPost = new Post(req.body);
+    const myObj = {
+      ...req.body,
+      image: "https://miro.medium.com/max/10368/1*o8tTGo3vsocTKnCUyz0wHA.jpeg",
+    };
+    const newPost = new Post(myObj);
     await newPost.save();
     res.status(201).send(newPost);
   } catch (error) {
@@ -67,7 +80,6 @@ route.put("/:id", async (req, res, next) => {
     const modifiedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
       useFindAndModify: false,
     });
-
     res.status(200).send(modifiedPost);
   } catch (error) {
     console.log(error);
