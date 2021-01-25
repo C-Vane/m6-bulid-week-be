@@ -8,6 +8,50 @@ route.post("/", async (req, res, next) => {
   try {
     const newPost = new Post(req.body);
     await newPost.save();
+    res.status(201).send(newPost);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+route.get("/", async (req, res, next) => {
+  try {
+    const allPost = await Post.find();
+    res.status(200).send(allPost);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+route.get("/:id", async (req, res, next) => {
+  try {
+    const singlePost = await Post.findById(req.params.id);
+    res.status(200).send(singlePost);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+route.put("/:id", async (req, res, next) => {
+  try {
+    const modifiedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
+      useFindAndModify: false,
+    });
+
+    res.status(200).send(modifiedPost);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+route.delete("/:id", async (req, res, next) => {
+  try {
+    const deletedPost = await Post.findByIdAndDelete(req.params.id);
+    res.status(200).send("POST DELETED");
   } catch (error) {
     console.log(error);
     next(error);
