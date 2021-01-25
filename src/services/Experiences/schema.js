@@ -32,6 +32,6 @@ const ExperienceSchema = new Schema(
 );
 
 
-const ExperienceModel = model("Experience", UserSchema);
+const ExperienceModel = model("Experience", ExperienceSchema);
 
 module.exports = ExperienceModel;
