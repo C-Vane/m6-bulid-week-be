@@ -6,7 +6,11 @@ const mongoose = require("mongoose");
 
 const allRouter = require("./services/index");
 
-const { notFoundHandler, badRequestHandler, genericErrorHandler } = require("./utilities/errorHandler");
+const {
+  notFoundHandler,
+  badRequestHandler,
+  genericErrorHandler,
+} = require("./utilities/errorHandler");
 
 const server = express();
 
@@ -20,7 +24,7 @@ server.use(cors());
 
 ///APIs
 
-server.use("/", allRouter);
+// server.use("/", allRouter);
 
 // ERROR HANDLERS MIDDLEWARES
 
