@@ -24,7 +24,7 @@ server.use(cors());
 
 ///APIs
 
-// server.use("/", allRouter);
+server.use("/", allRouter);
 
 // ERROR HANDLERS MIDDLEWARES
 
