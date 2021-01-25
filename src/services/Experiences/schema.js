@@ -21,10 +21,10 @@ const ExperienceSchema = new Schema(
     description: String,
     area: String,
     image: String,
-    username: [
-        {userId: Schema.Types.ObjectId, username: String, password: String},
-    ],
-
+    username: { 
+        type: Schema.Types.ObjectId, ref: "User",
+        required: true,
+    },
   },
   {
     timestamps: true,
