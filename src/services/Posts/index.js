@@ -111,8 +111,12 @@ route.get("/", async (req, res, next) => {
   try {
     const query = q2m(req.query);
     console.log(query);
-    const total = await Post.countDocuments(query.criteria);
-    const allPost = await Post.find(query.criteria).sort({ createdAt: -1 }).skip(query.options.skip).limit(query.options.limit).populate("author", "name surname image title");
+    const total = await Post.countDocuments(req.query.search && { $text: { $search: req.query.search } });
+    const allPost = await Post.find(req.query.search && { $text: { $search: req.query.search } })
+      .sort({ createdAt: -1 })
+      .skip(query.options.skip)
+      .limit(query.options.limit)
+      .populate("author", "name surname image title");
     const posts = allPost.map((post) => (post = { ...post, reactions: reactions.length }));
     res.status(200).send({ total, posts });
   } catch (error) {
