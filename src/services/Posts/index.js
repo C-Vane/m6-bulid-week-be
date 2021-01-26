@@ -5,6 +5,8 @@ const multer = require("multer");
 const mongoose = require("mongoose");
 const { verifyToken } = require("../../utilities/errorHandler");
 const jwt = require("jsonwebtoken");
+const q2m = require("query-to-mongo");
+const secretKey = process.env.TOKEN_SECRET;
 // const fs = require("fs");
 // const MongoClient = require("mongodb").MongoClient;
 // const url = "mongodb://localhost:5001/";
@@ -90,11 +92,10 @@ route.post("/:id/upload", verifyToken, parser.single("image"), async (req, res, 
 route.post("/", verifyToken, async (req, res, next) => {
   try {
     jwt.verify(req.token, secretKey, async (err, data) => {
-      if (err && req.body.user !== data._id) res.sendStatus(403);
+      if (err || req.body.user !== data._id) res.sendStatus(403);
       else {
         const myObj = {
           ...req.body,
-          image: "https://miro.medium.com/max/10368/1*o8tTGo3vsocTKnCUyz0wHA.jpeg",
         };
         const newPost = new Post(myObj);
         await newPost.save();
@@ -110,15 +111,15 @@ route.post("/", verifyToken, async (req, res, next) => {
 route.get("/", async (req, res, next) => {
   try {
     const query = q2m(req.query);
-    console.log(query);
     const total = await Post.countDocuments(req.query.search ? { $text: { $search: req.query.search } } : query.criteria);
     const allPost = await Post.find(req.query.search ? { $text: { $search: req.query.search } } : query.criteria)
       .sort({ createdAt: -1 })
       .skip(query.options.skip)
       .limit(query.options.limit)
-      .populate("author", "name surname image title");
-    const posts = allPost.map((post) => (post = { ...post, reactions: reactions.length }));
-    res.status(200).send({ total, posts });
+      .populate("user", "username name surname image title");
+    const posts = allPost.map((post) => (post = { ...post._doc, reactions: post.reactions.length }));
+    const links = query.links("http://localhost:3001/post", total);
+    res.status(200).send({ total, links, posts });
   } catch (error) {
     console.log(error);
     next(error);
@@ -128,7 +129,12 @@ route.get("/", async (req, res, next) => {
 route.get("/:id", async (req, res, next) => {
   try {
     const singlePost = await Post.findById(req.params.id).populate("author", "name surname image title").populate("reactions.user", "name surname image title");
-    res.status(200).send(singlePost);
+    if (singlePost) res.status(200).send(singlePost);
+    else {
+      const error = new Error("Post not found");
+      error.httpStatusCode = 404;
+      next(error);
+    }
   } catch (error) {
     console.log(error);
     next(error);
@@ -146,6 +152,28 @@ route.put("/:id", verifyToken, async (req, res, next) => {
           });
           res.status(200).send(modifiedPost);
         } else res.sendStatus(403);
+      }
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+route.post("/reaction/:postId", verifyToken, async (req, res, next) => {
+  try {
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err || req.body.user !== data._id) res.sendStatus(403);
+      else {
+        await Post.findByIdAndUpdate(req.params.postId, { $pull: { reactions: { user: data._id } } });
+        const modifiedPost = await Post.findByIdAndUpdate(
+          req.params.postId,
+          { $push: { reactions: req.body } },
+          {
+            new: true,
+            useFindAndModify: false,
+          }
+        );
+        res.status(200).send(modifiedPost);
       }
     });
   } catch (error) {

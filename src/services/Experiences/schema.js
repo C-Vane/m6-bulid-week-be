@@ -11,26 +11,26 @@ const ExperienceSchema = new Schema(
       required: "Company name is required",
     },
     startDate: {
-        type: Date,
-        required: "Input start date",
+      type: Date,
+      required: "Input start date",
     },
     endDate: {
-        type: Date,
-        required: false,
-    }, 
+      type: Date,
+      required: false,
+    },
     description: String,
     area: String,
     image: String,
-    username: { 
-        type: Schema.Types.ObjectId, ref: "User",
-        required: true,
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
   },
   {
     timestamps: true,
   }
 );
-
 
 const ExperienceModel = model("Experience", ExperienceSchema);
 

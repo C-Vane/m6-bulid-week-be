@@ -9,25 +9,34 @@ const { verifyToken } = require("../../utilities/errorHandler");
 
 const jwt = require("jsonwebtoken");
 
-commentsRouter.get("/", async (req, res, next) => {
+const q2m = require("query-to-mongo");
+
+const secretKey = process.env.TOKEN_SECRET;
+
+/* commentsRouter.get("/", async (req, res, next) => {
   try {
-    const comments = await CommentsSchema.find()
-      .sort({ createdAt: -1 })
-      .skip(req.query.page && (req.query.page - 1) * 10)
-      .limit(10)
-      .populate("author", "name surname image title");
-    res.send(comments);
+    const query = q2m(req.query);
+    const comments = await CommentsSchema.find().sort({ createdAt: -1 }).skip(query.options.skip).limit(query.options.limit).populate("author", "name surname image title");
+    const total = await Post.countDocuments();
+    res.send(comments, total);
   } catch (error) {
     next(error);
   }
-});
+}); */
 
 commentsRouter.get("/:postId", async (req, res, next) => {
   try {
-    const id = req.params.id;
-    const comment = await CommentsSchema.find({ post: Types.ObjectId(req.params.postId) }).populate("author", "name surname image title");
+    const id = req.params.postId;
+    const query = q2m(req.query);
+    const total = await CommentsSchema.countDocuments({ post: Types.ObjectId(id) });
+    const comment = await CommentsSchema.find({ post: Types.ObjectId(id) })
+      .sort({ createdAt: -1 })
+      .skip(query.options.skip)
+      .limit(query.options.limit)
+      .populate("author", "name surname image title");
+    const links = query.links("http://localhost:3001/comments", total);
     if (comment) {
-      res.send(comment);
+      res.send({ total, links, comment });
     } else {
       const error = new Error();
       error.httpStatusCode = 404;
