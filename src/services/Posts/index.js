@@ -111,8 +111,8 @@ route.get("/", async (req, res, next) => {
   try {
     const query = q2m(req.query);
     console.log(query);
-    const total = await Post.countDocuments(req.query.search && { $text: { $search: req.query.search } });
-    const allPost = await Post.find(req.query.search && { $text: { $search: req.query.search } })
+    const total = await Post.countDocuments(req.query.search ? { $text: { $search: req.query.search } } : query.criteria);
+    const allPost = await Post.find(req.query.search ? { $text: { $search: req.query.search } } : query.criteria)
       .sort({ createdAt: -1 })
       .skip(query.options.skip)
       .limit(query.options.limit)
