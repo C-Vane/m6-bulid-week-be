@@ -50,15 +50,32 @@ profilesRouter.get("/", async (req, res, next) => {
   }
 });
 
-profilesRouter.get("/:Id", verifyToken, async (req, res, next) => {
+profilesRouter.get("/user", verifyToken, async (req, res, next) => {
+  try {
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err) res.sendStatus(403);
+      else {
+        const profile = await ProfilesSchema.findById(data._id);
+        if (profile) {
+          res.send(profile);
+        } else {
+          const error = new Error("USER not found or token expired");
+          error.httpStatusCode = 404;
+          next(error);
+        }
+      }
+    });
+  } catch (error) {
+    console.log(error);
+    next("While reading profiles list a problem occurred!");
+  }
+});
+profilesRouter.get("/:Id", async (req, res, next) => {
   try {
     const id = req.params.Id;
-    const profile = await ProfilesSchema.findById(id).select("-password");
+    const profile = await ProfilesSchema.findById(id).select(["-password", "-email"]);
     if (profile) {
-      jwt.verify(req.token, secretKey, (err, profile) => {
-        if (err) res.sendStatus(403);
-        else res.send(profile);
-      });
+      res.send(profile);
     } else {
       const error = new Error();
       error.httpStatusCode = 404;
@@ -69,13 +86,12 @@ profilesRouter.get("/:Id", verifyToken, async (req, res, next) => {
     next("While reading profiles list a problem occurred!");
   }
 });
-
 //USER SIGN IN
 profilesRouter.post("/login", async (req, res, next) => {
   try {
     const user = await ProfilesSchema.findOne({ $and: [{ $or: [{ username: req.body.user }, { email: req.body.user }] }, { password: req.body.password }] });
     if (user) {
-      jwt.sign({ user }, secretKey, (err, token) => {
+      jwt.sign({ _id: user._id }, secretKey, (err, token) => {
         res.json({ token: token });
       });
     } else {
@@ -103,25 +119,30 @@ profilesRouter.post("/", async (req, res, next) => {
 });
 
 //POST IMAGE TO PROFILE
-profilesRouter.post("/:id/upload", verifyToken, parser.single("image"), async (req, res, next) => {
+profilesRouter.post("/:id/picture", verifyToken, parser.single("image"), async (req, res, next) => {
   try {
-    const modifiedProfile = await ProfilesSchema.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: req.query.background
-          ? {
-              background: req.file.path,
-            }
-          : {
-              image: req.file.path,
-            },
-      },
-      {
-        useFindAndModify: false,
-        new: true,
+    jwt.verify(req.token, secretKey, async (err, user) => {
+      if (err) res.sendStatus(403);
+      else {
+        const modifiedProfile = await ProfilesSchema.findByIdAndUpdate(
+          user._id,
+          {
+            $set: req.query.background
+              ? {
+                  background: req.file.path,
+                }
+              : {
+                  image: req.file.path,
+                },
+          },
+          {
+            useFindAndModify: false,
+            new: true,
+          }
+        );
+        res.status(200).send(modifiedProfile);
       }
-    );
-    res.status(200).send(modifiedProfile);
+    });
   } catch (error) {
     console.log(error);
     next(error);
@@ -132,17 +153,22 @@ profilesRouter.post("/:id/upload", verifyToken, parser.single("image"), async (r
 
 profilesRouter.put("/:id", verifyToken, async (req, res, next) => {
   try {
-    const profile = await ProfilesSchema.findByIdAndUpdate(req.params.id, req.body, {
-      runValidators: true,
-      new: true,
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err && data._id !== req.params.id) res.sendStatus(403);
+      else {
+        const profile = await ProfilesSchema.findByIdAndUpdate(data._id, req.body, {
+          runValidators: true,
+          new: true,
+        });
+        if (profile) {
+          res.send(profile);
+        } else {
+          const error = new Error(`profile with id ${req.params.id} not found`);
+          error.httpStatusCode = 404;
+          next(error);
+        }
+      }
     });
-    if (profile) {
-      res.send(profile);
-    } else {
-      const error = new Error(`profile with id ${req.params.id} not found`);
-      error.httpStatusCode = 404;
-      next(error);
-    }
   } catch (error) {
     next(error);
   }
@@ -152,16 +178,24 @@ profilesRouter.put("/:id", verifyToken, async (req, res, next) => {
 
 profilesRouter.delete("/:id", verifyToken, async (req, res, next) => {
   try {
-    const profile = await ProfilesSchema.findByIdAndDelete(req.params.id);
-    if (profile) {
-      res.send({ ...profile, ok: true });
-    } else {
-      const error = new Error(`profile with id ${req.params.id} not found`);
-      error.httpStatusCode = 404;
-      next(error);
-    }
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err && data._id !== req.params.id) res.sendStatus(403);
+      else {
+        const profile = await ProfilesSchema.findByIdAndDelete(data._id);
+        if (profile) {
+          res.send({ ...profile, ok: true });
+        } else {
+          const error = new Error(`profile with id ${req.params.id} not found`);
+          error.httpStatusCode = 404;
+          next(error);
+        }
+      }
+    });
   } catch (error) {
     next(error);
   }
 });
+
+//GET PROFILE WITH EXPERIENCE AS CV
+
 module.exports = profilesRouter;
