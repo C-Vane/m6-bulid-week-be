@@ -2,8 +2,9 @@ const { Schema, model } = require("mongoose");
 
 const PostSchema = new Schema(
   {
-    text: String,
-    username: String,
+    text: {
+      type: String,
+    },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     image: String,
     reactions: [
@@ -13,6 +14,7 @@ const PostSchema = new Schema(
           type: Number,
           max: 6,
           min: 1,
+          required: true,
         },
       },
     ],
