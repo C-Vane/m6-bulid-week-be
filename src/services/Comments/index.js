@@ -9,14 +9,16 @@ const { verifyToken } = require("../../utilities/errorHandler");
 
 const jwt = require("jsonwebtoken");
 
+const q2m = require("query-to-mongo");
+
+const secretKey = process.env.TOKEN_SECRET;
+
 commentsRouter.get("/", async (req, res, next) => {
   try {
-    const comments = await CommentsSchema.find()
-      .sort({ createdAt: -1 })
-      .skip(req.query.page && (req.query.page - 1) * 10)
-      .limit(10)
-      .populate("author", "name surname image title");
-    res.send(comments);
+    const query = q2m(req.query);
+    const comments = await CommentsSchema.find().sort({ createdAt: -1 }).skip(query.options.skip).limit(query.options.limit).populate("author", "name surname image title");
+    const total = await Post.countDocuments();
+    res.send(comments, total);
   } catch (error) {
     next(error);
   }
@@ -24,8 +26,8 @@ commentsRouter.get("/", async (req, res, next) => {
 
 commentsRouter.get("/:postId", async (req, res, next) => {
   try {
-    const id = req.params.id;
-    const comment = await CommentsSchema.find({ post: Types.ObjectId(req.params.postId) }).populate("author", "name surname image title");
+    const id = req.params.postId;
+    const comment = await CommentsSchema.find({ post: Types.ObjectId(id) }).populate("author", "name surname image title");
     if (comment) {
       res.send(comment);
     } else {

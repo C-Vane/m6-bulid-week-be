@@ -5,6 +5,8 @@ const multer = require("multer");
 const mongoose = require("mongoose");
 const { verifyToken } = require("../../utilities/errorHandler");
 const jwt = require("jsonwebtoken");
+const q2m = require("query-to-mongo");
+const secretKey = process.env.TOKEN_SECRET;
 // const fs = require("fs");
 // const MongoClient = require("mongodb").MongoClient;
 // const url = "mongodb://localhost:5001/";
@@ -116,8 +118,8 @@ route.get("/", async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip(query.options.skip)
       .limit(query.options.limit)
-      .populate("author", "name surname image title");
-    const posts = allPost.map((post) => (post = { ...post, reactions: reactions.length }));
+      .populate("user", "name surname image title");
+    const posts = allPost.map((post) => (post = { ...post, reactions: post.reactions.length }));
     res.status(200).send({ total, posts });
   } catch (error) {
     console.log(error);
@@ -146,6 +148,29 @@ route.put("/:id", verifyToken, async (req, res, next) => {
           });
           res.status(200).send(modifiedPost);
         } else res.sendStatus(403);
+      }
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+route.post("/reaction/:postId", verifyToken, async (req, res, next) => {
+  try {
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err && req.body.user !== data._id) res.sendStatus(403);
+      else {
+        const modifiedPost = await Post.findByIdAndUpdate(
+          req.params.id,
+          {
+            reactions: { $pull: { user: data._id } },
+            reactions: { $push: req.body },
+          },
+          {
+            useFindAndModify: false,
+          }
+        );
+        res.status(200).send(modifiedPost);
       }
     });
   } catch (error) {
