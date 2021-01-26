@@ -3,11 +3,11 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const mongoose = require("mongoose");
-// const fs = require("fs");
-// const MongoClient = require("mongodb").MongoClient;
-// const url = "mongodb://localhost:5001/";
-// const Json2csvParser = require("json2csv").Parser;
-// const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const MongoClient = require("mongodb").MongoClient;
+const url = "mongodb://localhost:5001/";
+const Json2csvParser = require("json2csv").Parser;
+const PDFDocument = require("pdfkit");
 const q2m = require("query-to-mongo");
 
 const Post = require("./schema");
@@ -25,31 +25,39 @@ const storage = new CloudinaryStorage({
 
 const parser = multer({ storage: storage });
 
-// route.get("/json2csv", async (req, res, next) => {
-//   try {
-//     const allPost = await Post.find();
+route.get("/json2csv", async (req, res, next) => {
+  try {
+    const allPost = await Post.find();
 
-//     // allPost.toArray(function (err, result) {
-//     //   if (err) throw err;
-//     //   console.log(result);
-//     // });
-//     const csvFields = ["_id", "username", "image", "user"];
-//     const json2csvParser = new Json2csvParser({ csvFields });
-//     const csv = json2csvParser.parse(allPost);
-//     console.log(csv);
+    // allPost.toArray(function (err, result) {
+    //   if (err) throw err;
+    //   console.log(result);
+    // });
+    const csvFields = ["_id", "username", "image", "user"];
+    const json2csvParser = new Json2csvParser({ csvFields });
+    const csv = json2csvParser.parse(allPost);
+    console.log(csv);
 
-//     const doc = new PDFDocument();
-//     doc.text(csv);
+    res.status(200).send(allPost);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
 
-//     doc.pipe(fs.createWriteStream("output3.pdf"));
-
-//     doc.end();
-//     res.status(200).send(allPost);
-//   } catch (error) {
-//     console.log(error);
-//     next(error);
-//   }
-// });
+route.get("/pdf", async (req, res, next) => {
+  try {
+    const allPost = await Post.find();
+    const doc = new PDFDocument();
+    doc.text("HI VANESSA AND RABEA. OPEN THE PDF :) ");
+    doc.pipe(fs.createWriteStream("output3.pdf"));
+    doc.end();
+    res.status(200).send(allPost);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
 
 route.post("/:id/upload", parser.single("image"), async (req, res, next) => {
   try {
@@ -100,8 +108,13 @@ route.get("/", async (req, res, next) => {
   try {
     const query = q2m(req.query);
     console.log(query);
-    const allPost = await Post.find().sort({ createdAt: -1 });
-    res.status(200).send(allPost);
+    const total = await Post.countDocuments(query.criteria);
+    const allPost = await Post.find(query.criteria)
+      .sort({ createdAt: -1 })
+      .skip(query.options.skip)
+      .limit(query.options.limit);
+
+    res.status(200).send({ total, allPost });
   } catch (error) {
     console.log(error);
     next(error);
