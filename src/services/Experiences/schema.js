@@ -4,15 +4,15 @@ const ExperienceSchema = new Schema(
   {
     role: {
       type: String,
-      required: true,
+      required: "Please specify the role",
     },
     company: {
       type: String,
-      required: true,
+      required: "Company name is required",
     },
     startDate: {
         type: Date,
-        required: true,
+        required: "Input start date",
     },
     endDate: {
         type: Date,
