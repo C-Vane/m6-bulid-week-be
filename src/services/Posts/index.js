@@ -3,6 +3,13 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const mongoose = require("mongoose");
+// const fs = require("fs");
+// const MongoClient = require("mongodb").MongoClient;
+// const url = "mongodb://localhost:5001/";
+// const Json2csvParser = require("json2csv").Parser;
+// const PDFDocument = require("pdfkit");
+const q2m = require("query-to-mongo");
+
 const Post = require("./schema");
 
 const route = express.Router();
@@ -11,17 +18,60 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "linkedin",
-    format: async (req, file) => "png",
+    format: async (req, file) => "png" || "jpg",
     public_id: (req, file) => "image",
   },
 });
 
 const parser = multer({ storage: storage });
 
-route.post("/upload", parser.single("image"), async (req, res, next) => {
+// route.get("/json2csv", async (req, res, next) => {
+//   try {
+//     const allPost = await Post.find();
+
+//     // allPost.toArray(function (err, result) {
+//     //   if (err) throw err;
+//     //   console.log(result);
+//     // });
+//     const csvFields = ["_id", "username", "image", "user"];
+//     const json2csvParser = new Json2csvParser({ csvFields });
+//     const csv = json2csvParser.parse(allPost);
+//     console.log(csv);
+
+//     const doc = new PDFDocument();
+//     doc.text(csv);
+
+//     doc.pipe(fs.createWriteStream("output3.pdf"));
+
+//     doc.end();
+//     res.status(200).send(allPost);
+//   } catch (error) {
+//     console.log(error);
+//     next(error);
+//   }
+// });
+
+route.post("/:id/upload", parser.single("image"), async (req, res, next) => {
   try {
-    const postedImage = req.file;
-    res.status(200).send(postedImage);
+    // const newPost = {
+    //   ...req.body,
+    //   image: req.file.path,
+    // };
+
+    const modifiedPost = await Post.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          image: req.file.path,
+        },
+      },
+      {
+        useFindAndModify: false,
+      }
+    );
+
+    console.log(req.file.path);
+    res.status(200).send(modifiedPost);
   } catch (error) {
     console.log(error);
     next(error);
@@ -33,7 +83,11 @@ route.post("/upload", parser.single("image"), async (req, res, next) => {
 //<-------------------------------------------------^ Image Upload ^---------------------------------------------------->//
 route.post("/", async (req, res, next) => {
   try {
-    const newPost = new Post(req.body);
+    const myObj = {
+      ...req.body,
+      image: "https://miro.medium.com/max/10368/1*o8tTGo3vsocTKnCUyz0wHA.jpeg",
+    };
+    const newPost = new Post(myObj);
     await newPost.save();
     res.status(201).send(newPost);
   } catch (error) {
@@ -44,7 +98,9 @@ route.post("/", async (req, res, next) => {
 
 route.get("/", async (req, res, next) => {
   try {
-    const allPost = await Post.find();
+    const query = q2m(req.query);
+    console.log(query);
+    const allPost = await Post.find().sort({ createdAt: -1 });
     res.status(200).send(allPost);
   } catch (error) {
     console.log(error);
@@ -67,7 +123,6 @@ route.put("/:id", async (req, res, next) => {
     const modifiedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
       useFindAndModify: false,
     });
-
     res.status(200).send(modifiedPost);
   } catch (error) {
     console.log(error);
