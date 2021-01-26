@@ -1,7 +1,4 @@
 const { Schema, model } = require("mongoose");
-const UserModel = require("../Profiles/schema");
-
-const Profile = "Just a test 1234";
 
 const PostSchema = new Schema(
   {
@@ -9,7 +6,7 @@ const PostSchema = new Schema(
     username: String,
     user: {
       type: Schema.Types.ObjectId,
-      ref: UserModel,
+      ref: "User",
     },
     image: String,
   },
