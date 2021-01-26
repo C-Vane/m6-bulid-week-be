@@ -21,6 +21,7 @@ const ExperienceSchema = new Schema(
     description: String,
     area: String,
     image: String,
+    userName: { type: String, required: true },
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
