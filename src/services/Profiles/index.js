@@ -192,7 +192,7 @@ profilesRouter.delete("/:id", verifyToken, async (req, res, next) => {
 });
 
 //GET PROFILE WITH EXPERIENCE AS CV
-profilesRouter.get("/:Id", async (req, res, next) => {
+profilesRouter.get("/:Id/cv", async (req, res, next) => {
   try {
     const id = req.params.Id;
     const profile = await ProfilesSchema.findById(id).select(["-password", "-email"]);

@@ -8,6 +8,6 @@ const experiences = require("./Experiences/index.js");
 router.use("/profile", profile);
 router.use("/comments", comments);
 router.use("/post", post);
-router.use("/experiences", experiences);
+router.use("/profiles", experiences);
 
 module.exports = router;
