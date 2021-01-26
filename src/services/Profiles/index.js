@@ -28,18 +28,7 @@ const storage = new CloudinaryStorage({
     public_id: (req, file) => "image",
   },
 });
-
-const verifyToken = (req, res, next) => {
-  const barrierHeader = req.headers["authorization"];
-  if (typeof barrierHeader !== "undefined") {
-    const barrierTocken = barrierHeader.split(" ")[1];
-    req.token = barrierTocken;
-    next();
-  } else {
-    res.sendStatus(403);
-  }
-};
-
+const { verifyToken } = require("../../utilities/errorHandler");
 const parser = multer({ storage: storage });
 
 profilesRouter.get("/", async (req, res, next) => {
@@ -97,7 +86,8 @@ profilesRouter.post("/login", async (req, res, next) => {
     const user = await ProfilesSchema.findOne({ $and: [{ $or: [{ username: req.body.user }, { email: req.body.user }] }, { password: req.body.password }] });
     if (user) {
       jwt.sign({ _id: user._id }, secretKey, (err, token) => {
-        res.json({ token: token });
+        if (err) res.sendStatus(404);
+        else res.json({ token: token });
       });
     } else {
       const error = new Error(`profile with given email/username and password not found`);
