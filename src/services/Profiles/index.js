@@ -2,10 +2,15 @@ const express = require("express");
 const { Mongoose, Types } = require("mongoose");
 
 const ProfilesSchema = require("./schema");
+const ExperienceSchema = require("../Experiences/schema");
 
 const profilesRouter = express.Router();
 
 const jwt = require("jsonwebtoken");
+
+const PDFDocument = require("pdfkit");
+
+const fs = require("fs");
 
 const cloudinary = require("cloudinary").v2;
 
@@ -197,5 +202,25 @@ profilesRouter.delete("/:id", verifyToken, async (req, res, next) => {
 });
 
 //GET PROFILE WITH EXPERIENCE AS CV
+profilesRouter.get("/:Id", async (req, res, next) => {
+  try {
+    const id = req.params.Id;
+    const profile = await ProfilesSchema.findById(id).select(["-password", "-email"]);
+    const experience = await ExperienceSchema.findOne({ username: id });
+    const doc = new PDFDocument();
+    doc.text(data);
+    doc.pipe(fs.createWriteStream(`${profile.username}CV.pdf`));
 
+    if (profile) {
+      res.send(profile);
+    } else {
+      const error = new Error();
+      error.httpStatusCode = 404;
+      next(error);
+    }
+  } catch (error) {
+    console.log(error);
+    next("While reading profiles list a problem occurred!");
+  }
+});
 module.exports = profilesRouter;
