@@ -3,10 +3,13 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const mongoose = require("mongoose");
-const fs = require("fs");
-
-const PDFDocument = require("pdfkit");
-const q2m = require("query-to-mongo");
+const { verifyToken } = require("../../utilities/errorHandler");
+const jwt = require("jsonwebtoken");
+// const fs = require("fs");
+// const MongoClient = require("mongodb").MongoClient;
+// const url = "mongodb://localhost:5001/";
+// const Json2csvParser = require("json2csv").Parser;
+// const PDFDocument = require("pdfkit");
 
 const ObjectsToCsv = require("objects-to-csv");
 
@@ -54,40 +57,50 @@ route.get("/json2csv", async (req, res, next) => {
 //   }
 // });
 
-route.post("/:id/upload", parser.single("image"), async (req, res, next) => {
+route.post("/:id/upload", verifyToken, parser.single("image"), async (req, res, next) => {
   try {
-    const modifiedPost = await Post.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          image: req.file.path,
-        },
-      },
-      {
-        useFindAndModify: false,
-      }
-    );
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err) res.sendStatus(403);
+      else {
+        if (await Post.findOne({ $and: [{ _id: req.params.id }, { user: data._id }] })) {
+          const modifiedPost = await Post.findByIdAndUpdate(
+            req.params.id,
+            {
+              $set: {
+                image: req.file.path,
+              },
+            },
+            {
+              useFindAndModify: false,
+            }
+          );
 
-    console.log(req.file.path);
-    res.status(200).send(modifiedPost);
+          console.log(req.file.path);
+          res.status(200).send(modifiedPost);
+        } else res.sendStatus(403);
+      }
+    });
   } catch (error) {
     console.log(error);
     next(error);
   }
 });
 
-//----Not yet done----///
-
 //<-------------------------------------------------^ Image Upload ^---------------------------------------------------->//
-route.post("/", async (req, res, next) => {
+route.post("/", verifyToken, async (req, res, next) => {
   try {
-    const myObj = {
-      ...req.body,
-      image: "https://miro.medium.com/max/10368/1*o8tTGo3vsocTKnCUyz0wHA.jpeg",
-    };
-    const newPost = new Post(myObj);
-    await newPost.save();
-    res.status(201).send(newPost);
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err && req.body.user !== data._id) res.sendStatus(403);
+      else {
+        const myObj = {
+          ...req.body,
+          image: "https://miro.medium.com/max/10368/1*o8tTGo3vsocTKnCUyz0wHA.jpeg",
+        };
+        const newPost = new Post(myObj);
+        await newPost.save();
+        res.status(201).send(newPost);
+      }
+    });
   } catch (error) {
     console.log(error);
     next(error);
@@ -99,10 +112,7 @@ route.get("/", async (req, res, next) => {
     const query = q2m(req.query);
     console.log(query);
     const total = await Post.countDocuments(query.criteria);
-    const allPost = await Post.find(query.criteria)
-      .sort({ createdAt: -1 })
-      .skip(query.options.skip)
-      .limit(query.options.limit);
+    const allPost = await Post.find(query.criteria).sort({ createdAt: -1 }).skip(query.options.skip).limit(query.options.limit);
 
     res.status(200).send({ total, allPost });
   } catch (error) {
@@ -113,7 +123,7 @@ route.get("/", async (req, res, next) => {
 
 route.get("/:id", async (req, res, next) => {
   try {
-    const singlePost = await Post.findById(req.params.id);
+    const singlePost = await Post.findById(req.params.id).populate("author", "name surname image title").populate("reactions.user", "name surname image title");
     res.status(200).send(singlePost);
   } catch (error) {
     console.log(error);
@@ -121,22 +131,37 @@ route.get("/:id", async (req, res, next) => {
   }
 });
 
-route.put("/:id", async (req, res, next) => {
+route.put("/:id", verifyToken, async (req, res, next) => {
   try {
-    const modifiedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
-      useFindAndModify: false,
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err) res.sendStatus(403);
+      else {
+        if (await Post.findOne({ $and: [{ _id: req.params.id }, { user: data._id }] })) {
+          const modifiedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
+            useFindAndModify: false,
+          });
+          res.status(200).send(modifiedPost);
+        } else res.sendStatus(403);
+      }
     });
-    res.status(200).send(modifiedPost);
   } catch (error) {
     console.log(error);
     next(error);
   }
 });
 
-route.delete("/:id", async (req, res, next) => {
+route.delete("/:id", verifyToken, async (req, res, next) => {
   try {
-    const deletedPost = await Post.findByIdAndDelete(req.params.id);
-    res.status(200).send("POST DELETED");
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err) res.sendStatus(403);
+      else {
+        if (await Post.findOne({ $and: [{ _id: req.params.id }, { user: data._id }] })) {
+          await Post.findByIdAndDelete(req.params.id);
+          res.status(200).send("POST DELETED");
+        }
+        res.sendStatus(403);
+      }
+    });
   } catch (error) {
     console.log(error);
     next(error);

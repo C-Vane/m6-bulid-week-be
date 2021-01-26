@@ -17,9 +17,19 @@ const genericErrorHandler = (err, req, res, next) => {
     res.status(err.httpStatusCode || 500).send(err.message);
   }
 };
-
+const verifyToken = (req, res, next) => {
+  const barrierHeader = req.headers["authorization"];
+  if (typeof barrierHeader !== "undefined") {
+    const barrierTocken = barrierHeader.split(" ")[1];
+    req.token = barrierTocken;
+    next();
+  } else {
+    res.sendStatus(403);
+  }
+};
 module.exports = {
   badRequestHandler,
   notFoundHandler,
   genericErrorHandler,
+  verifyToken,
 };

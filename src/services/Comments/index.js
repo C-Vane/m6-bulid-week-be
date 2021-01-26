@@ -5,6 +5,10 @@ const CommentsSchema = require("./schema");
 
 const commentsRouter = express.Router();
 
+const { verifyToken } = require("../../utilities/errorHandler");
+
+const jwt = require("jsonwebtoken");
+
 commentsRouter.get("/", async (req, res, next) => {
   try {
     const comments = await CommentsSchema.find()
@@ -35,44 +39,63 @@ commentsRouter.get("/:postId", async (req, res, next) => {
   }
 });
 
-commentsRouter.post("/", async (req, res, next) => {
+commentsRouter.post("/", verifyToken, async (req, res, next) => {
   try {
-    const newcomment = new CommentsSchema(req.body);
-    const { _id } = await newcomment.save();
-    res.status(201).send(_id);
-  } catch (error) {
-    next(error);
-  }
-});
-
-commentsRouter.put("/:id", async (req, res, next) => {
-  try {
-    const comment = await CommentsSchema.findByIdAndUpdate(req.params.id, req.body, {
-      runValidators: true,
-      new: true,
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err && req.body.author !== data._id) res.sendStatus(403);
+      else {
+        const newcomment = new CommentsSchema(req.body);
+        const { _id } = await newcomment.save();
+        res.status(201).send(_id);
+      }
     });
-    if (comment) {
-      res.send(comment);
-    } else {
-      const error = new Error(`comment with id ${req.params.id} not found`);
-      error.httpStatusCode = 404;
-      next(error);
-    }
   } catch (error) {
     next(error);
   }
 });
 
-commentsRouter.delete("/:id", async (req, res, next) => {
+commentsRouter.put("/:id", verifyToken, async (req, res, next) => {
   try {
-    const comment = await CommentsSchema.findByIdAndDelete(req.params.id);
-    if (comment) {
-      res.send({ ...comment, ok: true });
-    } else {
-      const error = new Error(`comment with id ${req.params.id} not found`);
-      error.httpStatusCode = 404;
-      next(error);
-    }
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err) res.sendStatus(403);
+      else {
+        if (await CommentsSchema.findOne({ $and: [{ _id: req.params.id }, { author: data._id }] })) {
+          const comment = await CommentsSchema.findByIdAndUpdate(req.params.id, req.body, {
+            runValidators: true,
+            new: true,
+          });
+          if (comment) {
+            res.send(comment);
+          } else {
+            const error = new Error(`comment with id ${req.params.id} not found`);
+            error.httpStatusCode = 404;
+            next(error);
+          }
+        } else res.sendStatus(403);
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+commentsRouter.delete("/:id", verifyToken, async (req, res, next) => {
+  try {
+    jwt.verify(req.token, secretKey, async (err, data) => {
+      if (err) res.sendStatus(403);
+      else {
+        if (await CommentsSchema.findOne({ $and: [{ _id: req.params.id }, { author: data._id }] })) {
+          const comment = await CommentsSchema.findByIdAndDelete(req.params.id);
+          if (comment) {
+            res.send({ ...comment, ok: true });
+          } else {
+            const error = new Error(`comment with id ${req.params.id} not found`);
+            error.httpStatusCode = 404;
+            next(error);
+          }
+        } else res.sendStatus(403);
+      }
+    });
   } catch (error) {
     next(error);
   }

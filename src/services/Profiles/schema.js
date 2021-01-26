@@ -50,6 +50,8 @@ const UserSchema = new Schema(
   }
 );
 
+UserSchema.index({ name: "text", surname: "text", bio: "text", title: "text", area: "text" });
+
 const UserModel = model("User", UserSchema);
 
 module.exports = UserModel;

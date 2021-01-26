@@ -4,17 +4,24 @@ const PostSchema = new Schema(
   {
     text: String,
     username: String,
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     image: String,
+    reactions: [
+      {
+        user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        reaction: {
+          type: Number,
+          max: 6,
+          min: 1,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
   }
 );
-
+PostSchema.index({ "user.name": "text", text: "text" });
 module.exports = model("Post", PostSchema);
 
 /**
