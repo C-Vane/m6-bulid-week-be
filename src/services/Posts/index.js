@@ -3,6 +3,13 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const mongoose = require("mongoose");
+// const fs = require("fs");
+// const MongoClient = require("mongodb").MongoClient;
+// const url = "mongodb://localhost:5001/";
+// const Json2csvParser = require("json2csv").Parser;
+// const PDFDocument = require("pdfkit");
+const q2m = require("query-to-mongo");
+
 const Post = require("./schema");
 
 const route = express.Router();
@@ -17,6 +24,32 @@ const storage = new CloudinaryStorage({
 });
 
 const parser = multer({ storage: storage });
+
+// route.get("/json2csv", async (req, res, next) => {
+//   try {
+//     const allPost = await Post.find();
+
+//     // allPost.toArray(function (err, result) {
+//     //   if (err) throw err;
+//     //   console.log(result);
+//     // });
+//     const csvFields = ["_id", "username", "image", "user"];
+//     const json2csvParser = new Json2csvParser({ csvFields });
+//     const csv = json2csvParser.parse(allPost);
+//     console.log(csv);
+
+//     const doc = new PDFDocument();
+//     doc.text(csv);
+
+//     doc.pipe(fs.createWriteStream("output3.pdf"));
+
+//     doc.end();
+//     res.status(200).send(allPost);
+//   } catch (error) {
+//     console.log(error);
+//     next(error);
+//   }
+// });
 
 route.post("/:id/upload", parser.single("image"), async (req, res, next) => {
   try {
@@ -65,7 +98,9 @@ route.post("/", async (req, res, next) => {
 
 route.get("/", async (req, res, next) => {
   try {
-    const allPost = await Post.find();
+    const query = q2m(req.query);
+    console.log(query);
+    const allPost = await Post.find().sort({ createdAt: -1 });
     res.status(200).send(allPost);
   } catch (error) {
     console.log(error);
