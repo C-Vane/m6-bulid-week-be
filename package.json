@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon -r dotenv/config ./src/server.js",
     "debug": "nodemon --inspect -r dotenv/config ./src/server.js",
-    "start": "node ./src/server.js"
+    "start": "node ./src/server.js",
+    "pdf": "node  ./src/services/Profiles/PDF/createPDF"
   },
   "repository": {
     "type": "git",
