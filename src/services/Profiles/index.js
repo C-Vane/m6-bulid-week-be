@@ -33,7 +33,7 @@ const parser = multer({ storage: storage });
 
 profilesRouter.get("/", async (req, res, next) => {
   try {
-    const profiles = await ProfilesSchema.find()
+    const profiles = await ProfilesSchema.find(req.query.search && { $text: { $search: req.query.search } })
       .select(["-password", "-email", "-bio", "-area", "-createdAt", "-updatedAt"])
       .sort({ createdAt: -1 })
       .skip(req.query.page && (req.query.page - 1) * 10)

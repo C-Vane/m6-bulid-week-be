@@ -1,19 +1,27 @@
 const { Schema, model } = require("mongoose");
 
-const Profile = "Just a test 1234";
-
 const PostSchema = new Schema(
   {
     text: String,
     username: String,
-    user: Number,
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     image: String,
+    reactions: [
+      {
+        user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        reaction: {
+          type: Number,
+          max: 6,
+          min: 1,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
   }
 );
-
+PostSchema.index({ "user.name": "text", text: "text" });
 module.exports = model("Post", PostSchema);
 
 /**
