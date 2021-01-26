@@ -4,11 +4,13 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const mongoose = require("mongoose");
 const fs = require("fs");
-const MongoClient = require("mongodb").MongoClient;
-const url = "mongodb://localhost:5001/";
-const Json2csvParser = require("json2csv").Parser;
+// const MongoClient = require("mongodb").MongoClient;
+// const url = "mongodb://localhost:5001/";
+// const Json2csvParser = require("json2csv").Parser;
 const PDFDocument = require("pdfkit");
 const q2m = require("query-to-mongo");
+// const fastcsv = require("fast-csv");
+const ObjectsToCsv = require("objects-to-csv");
 
 const Post = require("./schema");
 
@@ -34,12 +36,22 @@ route.get("/json2csv", async (req, res, next) => {
     //   console.log(result);
     // });
 
-    const csvFields = ["_id", "username", "image", "user"];
-    const json2csvParser = new Json2csvParser({ csvFields });
-    const csv = json2csvParser.parse(allPost);
-    console.log(csv);
+    const csv = new ObjectsToCsv(allPost);
 
-    res.status(200).send(allPost);
+    await csv.toDisk("test2.xlsx");
+
+    // res.setHeader("Content-Disposition", "attachment; filename=test2.csv");
+    res.writeHead(200, {
+      "Content-Disposition": 'attachment; filename="file.xlsx"',
+      "Transfer-Encoding": "chunked",
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    // const csvFields = ["_id", "username", "image", "user"];
+    // const json2csvParser = new Json2csvParser({ csvFields });
+    // const csv = json2csvParser.parse(allPost);
+
+    res.status(200).download("test2.xlsx");
   } catch (error) {
     console.log(error);
     next(error);
