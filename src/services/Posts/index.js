@@ -33,6 +33,7 @@ route.get("/json2csv", async (req, res, next) => {
     //   if (err) throw err;
     //   console.log(result);
     // });
+
     const csvFields = ["_id", "username", "image", "user"];
     const json2csvParser = new Json2csvParser({ csvFields });
     const csv = json2csvParser.parse(allPost);

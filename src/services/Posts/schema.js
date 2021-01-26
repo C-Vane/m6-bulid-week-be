@@ -1,4 +1,5 @@
 const { Schema, model } = require("mongoose");
+const UserModel = require("../Profiles/schema");
 
 const Profile = "Just a test 1234";
 
@@ -6,7 +7,10 @@ const PostSchema = new Schema(
   {
     text: String,
     username: String,
-    user: Number,
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: UserModel,
+    },
     image: String,
   },
   {
@@ -17,11 +21,7 @@ const PostSchema = new Schema(
 module.exports = model("Post", PostSchema);
 
 /**
- * user: {
-      type: Schema.Types.ObjectId,
-      ref: Profile,
-    },
-
+ *
  */
 
 // {
