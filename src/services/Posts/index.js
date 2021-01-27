@@ -30,20 +30,20 @@ const storage = new CloudinaryStorage({
 
 const parser = multer({ storage: storage });
 
-route.get("/json2csv", async (req, res, next) => {
-  try {
-    const allPost = await Post.find();
+// route.get("/json2csv", async (req, res, next) => {
+//   try {
+//     const allPost = await Post.find();
 
-    const csv = new ObjectsToCsv(allPost);
+//     const csv = new ObjectsToCsv(allPost);
 
-    await csv.toDisk("test2.xlsx");
+//     await csv.toDisk("test2.xlsx");
 
-    res.status(200).send(csv);
-  } catch (error) {
-    console.log(error);
-    next(error);
-  }
-});
+//     res.status(200).send(csv);
+//   } catch (error) {
+//     console.log(error);
+//     next(error);
+//   }
+// });
 
 // route.get("/pdf", async (req, res, next) => {
 //   try {
@@ -59,34 +59,43 @@ route.get("/json2csv", async (req, res, next) => {
 //   }
 // });
 
-route.post("/:id/upload", verifyToken, parser.single("image"), async (req, res, next) => {
-  try {
-    jwt.verify(req.token, secretKey, async (err, data) => {
-      if (err) res.sendStatus(403);
-      else {
-        if (await Post.findOne({ $and: [{ _id: req.params.id }, { user: data._id }] })) {
-          const modifiedPost = await Post.findByIdAndUpdate(
-            req.params.id,
-            {
-              $set: {
-                image: req.file.path,
+route.post(
+  "/:id/upload",
+  verifyToken,
+  parser.single("image"),
+  async (req, res, next) => {
+    try {
+      jwt.verify(req.token, secretKey, async (err, data) => {
+        if (err) res.sendStatus(403);
+        else {
+          if (
+            await Post.findOne({
+              $and: [{ _id: req.params.id }, { user: data._id }],
+            })
+          ) {
+            const modifiedPost = await Post.findByIdAndUpdate(
+              req.params.id,
+              {
+                $set: {
+                  image: req.file.path,
+                },
               },
-            },
-            {
-              useFindAndModify: false,
-            }
-          );
+              {
+                useFindAndModify: false,
+              }
+            );
 
-          console.log(req.file.path);
-          res.status(200).send(modifiedPost);
-        } else res.sendStatus(403);
-      }
-    });
-  } catch (error) {
-    console.log(error);
-    next(error);
+            console.log(req.file.path);
+            res.status(200).send(modifiedPost);
+          } else res.sendStatus(403);
+        }
+      });
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
   }
-});
+);
 
 //<-------------------------------------------------^ Image Upload ^---------------------------------------------------->//
 route.post("/", verifyToken, async (req, res, next) => {
@@ -111,13 +120,23 @@ route.post("/", verifyToken, async (req, res, next) => {
 route.get("/", async (req, res, next) => {
   try {
     const query = q2m(req.query);
-    const total = await Post.countDocuments(req.query.search ? { $text: { $search: req.query.search } } : query.criteria);
-    const allPost = await Post.find(req.query.search ? { $text: { $search: req.query.search } } : query.criteria)
+    const total = await Post.countDocuments(
+      req.query.search
+        ? { $text: { $search: req.query.search } }
+        : query.criteria
+    );
+    const allPost = await Post.find(
+      req.query.search
+        ? { $text: { $search: req.query.search } }
+        : query.criteria
+    )
       .sort({ createdAt: -1 })
       .skip(query.options.skip)
       .limit(query.options.limit)
       .populate("user", "username name surname image title");
-    const posts = allPost.map((post) => (post = { ...post._doc, reactions: post.reactions.length }));
+    const posts = allPost.map(
+      (post) => (post = { ...post._doc, reactions: post.reactions.length })
+    );
     const links = query.links("http://localhost:3001/post", total);
     res.status(200).send({ total, links, posts });
   } catch (error) {
@@ -128,7 +147,9 @@ route.get("/", async (req, res, next) => {
 
 route.get("/:id", async (req, res, next) => {
   try {
-    const singlePost = await Post.findById(req.params.id).populate("author", "name surname image title").populate("reactions.user", "name surname image title");
+    const singlePost = await Post.findById(req.params.id)
+      .populate("author", "name surname image title")
+      .populate("reactions.user", "name surname image title");
     if (singlePost) res.status(200).send(singlePost);
     else {
       const error = new Error("Post not found");
@@ -146,10 +167,18 @@ route.put("/:id", verifyToken, async (req, res, next) => {
     jwt.verify(req.token, secretKey, async (err, data) => {
       if (err) res.sendStatus(403);
       else {
-        if (await Post.findOne({ $and: [{ _id: req.params.id }, { user: data._id }] })) {
-          const modifiedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
-            useFindAndModify: false,
-          });
+        if (
+          await Post.findOne({
+            $and: [{ _id: req.params.id }, { user: data._id }],
+          })
+        ) {
+          const modifiedPost = await Post.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            {
+              useFindAndModify: false,
+            }
+          );
           res.status(200).send(modifiedPost);
         } else res.sendStatus(403);
       }
@@ -164,7 +193,9 @@ route.post("/reaction/:postId", verifyToken, async (req, res, next) => {
     jwt.verify(req.token, secretKey, async (err, data) => {
       if (err || req.body.user !== data._id) res.sendStatus(403);
       else {
-        await Post.findByIdAndUpdate(req.params.postId, { $pull: { reactions: { user: data._id } } });
+        await Post.findByIdAndUpdate(req.params.postId, {
+          $pull: { reactions: { user: data._id } },
+        });
         const modifiedPost = await Post.findByIdAndUpdate(
           req.params.postId,
           { $push: { reactions: req.body } },
@@ -187,7 +218,11 @@ route.delete("/:id", verifyToken, async (req, res, next) => {
     jwt.verify(req.token, secretKey, async (err, data) => {
       if (err) res.sendStatus(403);
       else {
-        if (await Post.findOne({ $and: [{ _id: req.params.id }, { user: data._id }] })) {
+        if (
+          await Post.findOne({
+            $and: [{ _id: req.params.id }, { user: data._id }],
+          })
+        ) {
           await Post.findByIdAndDelete(req.params.id);
           res.status(200).send("POST DELETED");
         }

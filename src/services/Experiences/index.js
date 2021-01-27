@@ -10,11 +10,10 @@ const jwt = require("jsonwebtoken");
 const q2m = require("query-to-mongo");
 const secretKey = process.env.TOKEN_SECRET;
 const UserSchema = require("../Profiles/schema");
-// const fs = require("fs");
-// const MongoClient = require("mongodb").MongoClient;
-// const url = "mongodb://localhost:5001/";
-// const Json2csvParser = require("json2csv").Parser;
-// const PDFDocument = require("pdfkit");
+const { Transform } = require("json2csv");
+const { pipeline } = require("stream");
+const fs = require("fs");
+
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -25,59 +24,68 @@ const storage = new CloudinaryStorage({
 });
 const parser = multer({ storage: storage });
 
-// route.get("/json2csv", async (req, res, next) => {
-//   try {
-//     const allPost = await Post.find();
-
-//     // allPost.toArray(function (err, result) {
-//     //   if (err) throw err;
-//     //   console.log(result);
-//     // });
-//     const csvFields = ["_id", "user", "image", "user"];
-//     const json2csvParser = new Json2csvParser({ csvFields });
-//     const csv = json2csvParser.parse(allPost);
-//     console.log(csv);
-
-//     const doc = new PDFDocument();
-//     doc.text(csv);
-
-//     doc.pipe(fs.createWriteStream("output3.pdf"));
-
-//     doc.end();
-//     res.status(200).send(allPost);
-//   } catch (error) {
-//     console.log(error);
-//     next(error);
-//   }
-// });
-
-// CHANGE PICTURE
-expRoute.post("/:username/experience/:expId/picture", verifyToken, parser.single("image"), async (req, res, next) => {
+//------------------- route for csv----------------------//
+expRoute.get("/csv/:username/:expId", async (req, res, next) => {
   try {
-    jwt.verify(req.token, secretKey, async (err, data) => {
-      if (err) res.sendStatus(403);
-      else {
-        if (await ExperienceSchema.findOne({ $and: [{ _id: req.params.expId }, { user: data._id }] })) {
-          const modifiedExperience = await ExperienceSchema.findByIdAndUpdate(
-            req.params.expId,
-            {
-              $set: {
-                image: req.file.path,
-              },
-            },
-            {
-              useFindAndModify: false,
-            }
-          );
-          res.status(200).send(modifiedExperience);
-        } else res.sendStatus(403);
+    const allExperiences = await ExperienceSchema.find();
+
+    const path = fs.createReadStream(
+      `localhost:5001/profiles/${req.params.username}/experience/${req.params.expId}`
+    );
+
+    const transCSVstream = new Transform({
+      fields: ["_id", "role", "user", "description"],
+    });
+
+    pipeline(path, transCSVstream, res, (err) => {
+      if (err) {
+        next(err);
       }
     });
+
+    res.setHeader("Content-Disposition", "attachment; filename=eccolo.csv");
   } catch (error) {
     console.log(error);
     next(error);
   }
 });
+
+// CHANGE PICTURE
+expRoute.post(
+  "/:username/experience/:expId/picture",
+  verifyToken,
+  parser.single("image"),
+  async (req, res, next) => {
+    try {
+      jwt.verify(req.token, secretKey, async (err, data) => {
+        if (err) res.sendStatus(403);
+        else {
+          if (
+            await ExperienceSchema.findOne({
+              $and: [{ _id: req.params.expId }, { user: data._id }],
+            })
+          ) {
+            const modifiedExperience = await ExperienceSchema.findByIdAndUpdate(
+              req.params.expId,
+              {
+                $set: {
+                  image: req.file.path,
+                },
+              },
+              {
+                useFindAndModify: false,
+              }
+            );
+            res.status(200).send(modifiedExperience);
+          } else res.sendStatus(403);
+        }
+      });
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  }
+);
 
 expRoute.post("/:username/experience", verifyToken, async (req, res, next) => {
   try {
@@ -90,7 +98,8 @@ expRoute.post("/:username/experience", verifyToken, async (req, res, next) => {
           ...req.body,
           userName: req.params.username,
           user: _id,
-          image: "https://miro.medium.com/max/10368/1*o8tTGo3vsocTKnCUyz0wHA.jpeg",
+          image:
+            "https://miro.medium.com/max/10368/1*o8tTGo3vsocTKnCUyz0wHA.jpeg",
         };
         const newExp = new ExperienceSchema(myObj);
         await newExp.save();
@@ -108,7 +117,9 @@ expRoute.get("/:username/experience", async (req, res, next) => {
   try {
     const query = q2m(req.query);
     console.log(query);
-    const allExperiences = await ExperienceSchema.find({ userName: req.params.username }).sort({ startDate: -1 });
+    const allExperiences = await ExperienceSchema.find({
+      userName: req.params.username,
+    }).sort({ startDate: -1 });
     res.status(200).send(allExperiences);
   } catch (error) {
     console.log(error);
@@ -150,51 +161,77 @@ expRoute.get("/:username/experience/:expId", async (req, res, next) => {
 });
 
 //EDIT EXPERIENCE
-expRoute.put("/:username/experience/:expId", verifyToken, async (req, res, next) => {
-  try {
-    jwt.verify(req.token, secretKey, async (err, data) => {
-      if (err) res.sendStatus(403);
-      else {
-        if (await ExperienceSchema.findOne({ $and: [{ _id: req.params.expId }, { user: data._id }] })) {
-          const experience = await ExperienceSchema.findByIdAndUpdate(req.params.expId, req.body, {
-            runValidators: true,
-            new: true,
-          });
-          if (experience) {
-            res.send(experience);
-          } else {
-            const error = new Error(`Experience with ID ${req.params.id} not found`);
-            error.httpStatusCode = 404;
-            next(error);
-          }
-        } else res.sendStatus(403);
-      }
-    });
-  } catch (error) {
-    next(error);
+expRoute.put(
+  "/:username/experience/:expId",
+  verifyToken,
+  async (req, res, next) => {
+    try {
+      jwt.verify(req.token, secretKey, async (err, data) => {
+        if (err) res.sendStatus(403);
+        else {
+          if (
+            await ExperienceSchema.findOne({
+              $and: [{ _id: req.params.expId }, { user: data._id }],
+            })
+          ) {
+            const experience = await ExperienceSchema.findByIdAndUpdate(
+              req.params.expId,
+              req.body,
+              {
+                runValidators: true,
+                new: true,
+              }
+            );
+            if (experience) {
+              res.send(experience);
+            } else {
+              const error = new Error(
+                `Experience with ID ${req.params.id} not found`
+              );
+              error.httpStatusCode = 404;
+              next(error);
+            }
+          } else res.sendStatus(403);
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
-expRoute.delete("/:username/experience/:expId", verifyToken, async (req, res, next) => {
-  try {
-    jwt.verify(req.token, secretKey, async (err, data) => {
-      if (err) res.sendStatus(403);
-      else {
-        if (await ExperienceSchema.findOne({ $and: [{ _id: req.params.expId }, { user: data._id }] })) {
-          const experience = await ExperienceSchema.findByIdAndDelete(req.params.expId);
-          if (experience) {
-            res.send({ ...experience, ok: true });
-          } else {
-            const error = new Error(`experience with id ${req.params.expId} not found`);
-            error.httpStatusCode = 404;
-            next(error);
-          }
-        } else res.sendStatus(403);
-      }
-    });
-  } catch (error) {
-    next(error);
+expRoute.delete(
+  "/:username/experience/:expId",
+  verifyToken,
+  async (req, res, next) => {
+    try {
+      jwt.verify(req.token, secretKey, async (err, data) => {
+        if (err) res.sendStatus(403);
+        else {
+          if (
+            await ExperienceSchema.findOne({
+              $and: [{ _id: req.params.expId }, { user: data._id }],
+            })
+          ) {
+            const experience = await ExperienceSchema.findByIdAndDelete(
+              req.params.expId
+            );
+            if (experience) {
+              res.send({ ...experience, ok: true });
+            } else {
+              const error = new Error(
+                `experience with id ${req.params.expId} not found`
+              );
+              error.httpStatusCode = 404;
+              next(error);
+            }
+          } else res.sendStatus(403);
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 module.exports = expRoute;
