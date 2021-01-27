@@ -49,12 +49,12 @@ const parser = multer({ storage: storage });
 //       }
 //     });
 
-    res.setHeader("Content-Disposition", "attachment; filename=eccolo.csv");
-  } catch (error) {
-    console.log(error);
-    next(error);
-  }
-});
+//     res.setHeader("Content-Disposition", "attachment; filename=eccolo.csv");
+//   } catch (error) {
+//     console.log(error);
+//     next(error);
+//   }
+// });
 
 // CHANGE PICTURE
 expRoute.post(
