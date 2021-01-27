@@ -10,7 +10,7 @@ const jwt = require("jsonwebtoken");
 const q2m = require("query-to-mongo");
 const secretKey = process.env.TOKEN_SECRET;
 const UserSchema = require("../Profiles/schema");
-const { Transform } = require("json2csv");
+const { Transform, parse } = require("json2csv");
 const { pipeline } = require("stream");
 const fs = require("fs");
 
@@ -25,23 +25,29 @@ const storage = new CloudinaryStorage({
 const parser = multer({ storage: storage });
 
 //------------------- route for csv----------------------//
-expRoute.get("/csv/:username/:expId", async (req, res, next) => {
-  try {
-    const allExperiences = await ExperienceSchema.find();
+// expRoute.get("/csv", async (req, res, next) => {
+//   try {
+//     const allExperiences = await ExperienceSchema.find();
 
-    const path = fs.createReadStream(
-      `localhost:5001/profiles/${req.params.username}/experience/${req.params.expId}`
-    );
+//     const path = fs.createReadStream(
+//       `mongodb://localhost:27017/profiles/${req.params.username}/experience/${req.params.expId}`
+//     );
 
-    const transCSVstream = new Transform({
-      fields: ["_id", "role", "user", "description"],
-    });
+//     const transCSVstream = new Transform({
+//       fields: ["_id", "role", "user", "description"],
+//     });
 
-    pipeline(path, transCSVstream, res, (err) => {
-      if (err) {
-        next(err);
-      }
-    });
+//     // const fields = ["_id", "role", "user", "description"];
+//     // const opts = { fields };
+
+//     // const csv = parse(allExperiences, opts);
+//     // console.log(csv);
+
+//     pipeline(path, transCSVstream, res, (err) => {
+//       if (err) {
+//         next(err);
+//       }
+//     });
 
     res.setHeader("Content-Disposition", "attachment; filename=eccolo.csv");
   } catch (error) {
