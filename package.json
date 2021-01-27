@@ -27,6 +27,7 @@
     "express-list-endpoints": "^5.0.0",
     "fast-csv": "^4.3.6",
     "handlebars": "^4.7.6",
+    "helmet": "^4.4.1",
     "json2csv": "^5.0.5",
     "jsonwebtoken": "^8.5.1",
     "moment": "^2.29.1",
