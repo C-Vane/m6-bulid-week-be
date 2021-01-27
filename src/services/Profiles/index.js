@@ -20,6 +20,10 @@ const multer = require("multer");
 
 const secretKey = process.env.TOKEN_SECRET;
 
+const createPDF = require("./PDF/pdf-generator");
+
+const moment = require("moment");
+
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -44,7 +48,7 @@ profilesRouter.get("/", async (req, res, next) => {
   }
 });
 
-profilesRouter.get("/user", verifyToken, async (req, res, next) => {
+profilesRouter.get("/user/:username", verifyToken, async (req, res, next) => {
   try {
     jwt.verify(req.token, secretKey, async (err, data) => {
       if (err) res.sendStatus(403);
@@ -64,12 +68,10 @@ profilesRouter.get("/user", verifyToken, async (req, res, next) => {
     next("While reading profiles list a problem occurred!");
   }
 });
-
-
-profilesRouter.get("/:Id", async (req, res, next) => {
+profilesRouter.get("/:username", async (req, res, next) => {
   try {
     const id = req.params.Id;
-    const profile = await ProfilesSchema.findById(id).select(["-password", "-email"]);
+    const profile = await ProfilesSchema.findOne({ username: req.params.username }).select(["-password", "-email"]);
     if (profile) {
       res.send(profile);
     } else {
@@ -194,19 +196,36 @@ profilesRouter.delete("/:id", verifyToken, async (req, res, next) => {
 });
 
 //GET PROFILE WITH EXPERIENCE AS CV
-profilesRouter.get("/:Id/cv", async (req, res, next) => {
+profilesRouter.get("/:Id/CV", async (req, res, next) => {
   try {
     const id = req.params.Id;
     const profile = await ProfilesSchema.findById(id).select(["-password", "-email"]);
-    const experience = await ExperienceSchema.findOne({ username: id });
-    const doc = new PDFDocument();
-    doc.text(data);
-    doc.pipe(fs.createWriteStream(`${profile.username}CV.pdf`));
-
+    const experiences = await ExperienceSchema.find({ user: id });
     if (profile) {
-      res.send(profile);
+      const data = {
+        name: profile.name + " " + profile.surname,
+        title: profile.title,
+        bio: profile.bio,
+        area: profile.area,
+        image: profile.image,
+        link: " https://yourapi.herokuapp.com/profile/" + profile.username,
+        experience: experiences.map(
+          (experience) => `
+      <div class="mb-3 d-flex flex-column">
+           <stong>${experience.company}</stong>
+           <span> ${experience.role}</span>
+           <span>${moment(experience.startDate).format("MMMM YYYY")}- ${experience.endDate ? moment(experience.endDate).format("MMMM YYYY") : "Present"}</span>
+           <span class="text-muted">${experience.area}</span>
+      </div>`
+        ),
+      };
+      const pdf = await createPDF(data);
+
+      if (pdf) {
+        res.download(pdf, profile.username + "_CV.pdf");
+      }
     } else {
-      const error = new Error();
+      const error = new Error("User not found");
       error.httpStatusCode = 404;
       next(error);
     }
