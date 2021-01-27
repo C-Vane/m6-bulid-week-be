@@ -10,11 +10,8 @@ const jwt = require("jsonwebtoken");
 const q2m = require("query-to-mongo");
 const secretKey = process.env.TOKEN_SECRET;
 const UserSchema = require("../Profiles/schema");
-const { Transform, parse } = require("json2csv");
-const { pipeline } = require("stream");
+const { parse } = require("json2csv");
 const fs = require("fs");
-const { AsyncParser } = require("json2csv");
-const ObjectsToCsv = require("objects-to-csv");
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
