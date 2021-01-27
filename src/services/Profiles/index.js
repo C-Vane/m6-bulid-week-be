@@ -64,6 +64,8 @@ profilesRouter.get("/user", verifyToken, async (req, res, next) => {
     next("While reading profiles list a problem occurred!");
   }
 });
+
+
 profilesRouter.get("/:Id", async (req, res, next) => {
   try {
     const id = req.params.Id;
