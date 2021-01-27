@@ -24,9 +24,11 @@ const storage = new CloudinaryStorage({
 const parser = multer({ storage: storage });
 
 //------------------- route for csv----------------------//
-expRoute.get("/csv", async (req, res, next) => {
+expRoute.get("/:username/experiences/CSV", async (req, res, next) => {
   try {
-    const allExperiences = await ExperienceSchema.find();
+    const allExperiences = await ExperienceSchema.find({
+      userName: req.params.username,
+    });
 
     const fields = ["_id", "role", "user", "description"];
     const opts = { fields };
