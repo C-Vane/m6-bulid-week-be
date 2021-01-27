@@ -3,14 +3,9 @@ const cors = require("cors");
 const { join } = require("path");
 const listEndpoints = require("express-list-endpoints");
 const mongoose = require("mongoose");
-
 const allRouter = require("./services/index");
 
-const {
-  notFoundHandler,
-  badRequestHandler,
-  genericErrorHandler,
-} = require("./utilities/errorHandler");
+const { notFoundHandler, badRequestHandler, genericErrorHandler } = require("./utilities/errorHandler");
 
 const server = express();
 
@@ -39,7 +34,7 @@ mongoose
   })
   .then(
     server.listen(port, () => {
-      console.log("Running on port", port)
+      console.log("Running on port", port);
     })
   )
-  .catch(err => console.log(err))
+  .catch((err) => console.log(err));

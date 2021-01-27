@@ -20,6 +20,8 @@ const multer = require("multer");
 
 const secretKey = process.env.TOKEN_SECRET;
 
+const createPDF = require("./PDF/pdf-generator");
+
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -192,11 +194,13 @@ profilesRouter.delete("/:id", verifyToken, async (req, res, next) => {
 });
 
 //GET PROFILE WITH EXPERIENCE AS CV
-profilesRouter.get("/:Id/cv", async (req, res, next) => {
+profilesRouter.get("/:Id/CV", async (req, res, next) => {
   try {
     const id = req.params.Id;
     const profile = await ProfilesSchema.findById(id).select(["-password", "-email"]);
-    const experience = await ExperienceSchema.findOne({ username: id });
+    const experience = await ExperienceSchema.findOne({ user: id });
+    const data = {};
+    const pdf = createPDF(data);
     const doc = new PDFDocument();
     doc.text(data);
     doc.pipe(fs.createWriteStream(`${profile.username}CV.pdf`));
