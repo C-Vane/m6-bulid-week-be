@@ -50,7 +50,7 @@ const UserSchema = new Schema(
   }
 );
 
-UserSchema.index({ name: "text", surname: "text", bio: "text", title: "text", area: "text" });
+UserSchema.index({ name: "text", surname: "text", bio: "text", title: "text", area: "text", username: "text" });
 
 const UserModel = model("User", UserSchema);
 
