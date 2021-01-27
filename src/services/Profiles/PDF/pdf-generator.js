@@ -4,23 +4,21 @@ const puppeteer = require("puppeteer");
 const handlebars = require("handlebars");
 
 module.exports = async function createPDF(data) {
-  var templateHtml = fs.readFileSync(path.join(process.cwd(), "template.html"), "utf8");
+  var templateHtml = fs.readFileSync(path.join(__dirname, "template.html"), "utf8");
   var template = handlebars.compile(templateHtml);
   var html = template(data);
-
-  var milis = new Date();
-  milis = milis.getTime();
-
-  var pdfPath = path.join(`CV.pdf`);
+  var pdfPath = path.join(__dirname, `CV.pdf`);
 
   var options = {
-    width: "1230px",
+    format: "A4",
     headerTemplate: "<p></p>",
     footerTemplate: "<p></p>",
     displayHeaderFooter: false,
     margin: {
-      top: "10px",
-      bottom: "30px",
+      top: "0px",
+      bottom: "0px",
+      left: "0px",
+      right: "0px",
     },
     printBackground: true,
     path: pdfPath,
@@ -36,7 +34,7 @@ module.exports = async function createPDF(data) {
   await page.goto(`data:text/html;charset=UTF-8,${html}`, {
     waitUntil: "networkidle0",
   });
-
   await page.pdf(options);
   await browser.close();
+  return pdfPath;
 };
