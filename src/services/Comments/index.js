@@ -34,7 +34,7 @@ commentsRouter.get("/:postId", async (req, res, next) => {
       .skip(query.options.skip)
       .limit(query.options.limit)
       .populate("author", "name surname image title");
-    const links = query.links("http://localhost:3001/comments", total);
+    const links = query.links("/", total);
     if (comment) {
       res.send({ total, links, comment });
     } else {
