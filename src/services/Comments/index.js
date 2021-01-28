@@ -33,7 +33,7 @@ commentsRouter.get("/:postId", async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip(query.options.skip)
       .limit(query.options.limit)
-      .populate("author", "name surname image title");
+      .populate("author", "name surname image title username");
     const links = query.links("/", total);
     if (comment) {
       res.send({ total, links, comment });

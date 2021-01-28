@@ -110,8 +110,8 @@ profilesRouter.post("/", async (req, res, next) => {
       image: "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg",
       background: "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg",
     });
-    const { _id } = await newprofile.save();
-    res.status(201).send(_id);
+    const user = await newprofile.save();
+    res.status(201).send(user);
   } catch (error) {
     next(error);
   }

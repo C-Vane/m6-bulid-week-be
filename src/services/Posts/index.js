@@ -132,7 +132,7 @@ route.get("/", async (req, res, next) => {
 
 route.get("/:id", async (req, res, next) => {
   try {
-    const singlePost = await Post.findById(req.params.id).populate("author", "name surname image title").populate("reactions.user", "name surname image title");
+    const singlePost = await Post.findById(req.params.id).populate("author", "name surname image title").populate("reactions.user", "name surname username image title");
     if (singlePost) res.status(200).send(singlePost);
     else {
       const error = new Error("Post not found");
