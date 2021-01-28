@@ -175,7 +175,7 @@ route.post("/reaction/:postId", verifyToken, async (req, res, next) => {
         await Post.findByIdAndUpdate(req.params.postId, {
           $pull: { reactions: { user: data._id } },
         });
-        const modifiedPost = req.body.reactions
+        const modifiedPost = req.body.reaction
           ? await Post.findByIdAndUpdate(
               req.params.postId,
               { $push: { reactions: req.body } },
