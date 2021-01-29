@@ -238,7 +238,7 @@ profilesRouter.get("/:Id/CV", async (req, res, next) => {
         bio: profile.bio,
         area: profile.area,
         image: profile.image,
-        link: " https://yourapi.herokuapp.com/profile/" + profile.username,
+        link: "https://linkedin-strive-fe.herokuapp.com/profile/" + profile.username,
         experience: experiences.map(
           (experience) => `
       <div class="mb-3 d-flex flex-column">
