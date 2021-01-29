@@ -136,8 +136,8 @@ profilesRouter.post("/", async (req, res, next) => {
       await sgMail.send(msg);
     }
 
-    const { _id } = await newprofile.save();
-    res.status(201).send(_id);
+    const profile = await newprofile.save();
+    res.status(201).send(profile);
   } catch (error) {
     next(error);
   }
