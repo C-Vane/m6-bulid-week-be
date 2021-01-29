@@ -24,6 +24,10 @@ const createPDF = require("./PDF/pdf-generator");
 
 const moment = require("moment");
 
+const sgMail = require("@sendgrid/mail");
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -37,8 +41,17 @@ const parser = multer({ storage: storage });
 
 profilesRouter.get("/", async (req, res, next) => {
   try {
-    const profiles = await ProfilesSchema.find(req.query.search && { $text: { $search: req.query.search } })
-      .select(["-password", "-email", "-bio", "-area", "-createdAt", "-updatedAt"])
+    const profiles = await ProfilesSchema.find(
+      req.query.search && { $text: { $search: req.query.search } }
+    )
+      .select([
+        "-password",
+        "-email",
+        "-bio",
+        "-area",
+        "-createdAt",
+        "-updatedAt",
+      ])
       .sort({ createdAt: -1 })
       .skip(req.query.page && (req.query.page - 1) * 10)
       .limit(10);
@@ -71,7 +84,9 @@ profilesRouter.get("/user/:username", verifyToken, async (req, res, next) => {
 profilesRouter.get("/:username", async (req, res, next) => {
   try {
     const id = req.params.Id;
-    const profile = await ProfilesSchema.findOne({ username: req.params.username }).select(["-password", "-email"]);
+    const profile = await ProfilesSchema.findOne({
+      username: req.params.username,
+    }).select(["-password", "-email"]);
     if (profile) {
       res.send(profile);
     } else {
@@ -87,14 +102,21 @@ profilesRouter.get("/:username", async (req, res, next) => {
 //USER SIGN IN
 profilesRouter.post("/login", async (req, res, next) => {
   try {
-    const user = await ProfilesSchema.findOne({ $and: [{ $or: [{ username: req.body.user }, { email: req.body.user }] }, { password: req.body.password }] });
+    const user = await ProfilesSchema.findOne({
+      $and: [
+        { $or: [{ username: req.body.user }, { email: req.body.user }] },
+        { password: req.body.password },
+      ],
+    });
     if (user) {
       jwt.sign({ _id: user._id }, secretKey, (err, token) => {
         if (err) res.sendStatus(404);
         else res.json({ token: token });
       });
     } else {
-      const error = new Error(`profile with given email/username and password not found`);
+      const error = new Error(
+        `profile with given email/username and password not found`
+      );
       error.httpStatusCode = 404;
       next(error);
     }
@@ -107,46 +129,69 @@ profilesRouter.post("/", async (req, res, next) => {
   try {
     const newprofile = new ProfilesSchema({
       ...req.body,
-      image: "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg",
-      background: "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg",
+      image:
+        "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg",
+      background:
+        "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg",
     });
-    const { _id } = await newprofile.save();
-    res.status(201).send(_id);
+
+    const { email, password, username, name } = newprofile;
+
+    console.log(email);
+    if (email.length > 0) {
+      const msg = {
+        to: `${email}`,
+        from: "studentrichard4@gmail.com",
+        subject: "Welcome to our community",
+        text: "Hi there i'm the email you wish",
+        html: `<strong>Thank you for joining our community ${name}. This is the confirmation mail with your credentials:<br/> <br/> Username:${username} <br/>Password:${password}</strong>.<br/><br/><br/> Thank you for choosing Linkedin. <br/> -Team 0 S1- `,
+      };
+
+      await sgMail.send(msg);
+    }
+
+    // const { _id } = await newprofile.save();
+    res.status(201).send(newprofile);
   } catch (error) {
     next(error);
   }
 });
 
 //POST IMAGE TO PROFILE
-profilesRouter.post("/:id/picture", verifyToken, parser.single("image"), async (req, res, next) => {
-  try {
-    jwt.verify(req.token, secretKey, async (err, user) => {
-      if (err) res.sendStatus(403);
-      else {
-        const modifiedProfile = await ProfilesSchema.findByIdAndUpdate(
-          user._id,
-          {
-            $set: req.query.background
-              ? {
-                  background: req.file.path,
-                }
-              : {
-                  image: req.file.path,
-                },
-          },
-          {
-            useFindAndModify: false,
-            new: true,
-          }
-        );
-        res.status(200).send(modifiedProfile);
-      }
-    });
-  } catch (error) {
-    console.log(error);
-    next(error);
+profilesRouter.post(
+  "/:id/picture",
+  verifyToken,
+  parser.single("image"),
+  async (req, res, next) => {
+    try {
+      jwt.verify(req.token, secretKey, async (err, user) => {
+        if (err) res.sendStatus(403);
+        else {
+          const modifiedProfile = await ProfilesSchema.findByIdAndUpdate(
+            user._id,
+            {
+              $set: req.query.background
+                ? {
+                    background: req.file.path,
+                  }
+                : {
+                    image: req.file.path,
+                  },
+            },
+            {
+              useFindAndModify: false,
+              new: true,
+            }
+          );
+          res.status(200).send(modifiedProfile);
+        }
+      });
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
   }
-});
+);
 
 //EDIT PROFILE
 
@@ -155,10 +200,14 @@ profilesRouter.put("/:id", verifyToken, async (req, res, next) => {
     jwt.verify(req.token, secretKey, async (err, data) => {
       if (err && data._id !== req.params.id) res.sendStatus(403);
       else {
-        const profile = await ProfilesSchema.findByIdAndUpdate(data._id, req.body, {
-          runValidators: true,
-          new: true,
-        });
+        const profile = await ProfilesSchema.findByIdAndUpdate(
+          data._id,
+          req.body,
+          {
+            runValidators: true,
+            new: true,
+          }
+        );
         if (profile) {
           res.send(profile);
         } else {
@@ -199,7 +248,10 @@ profilesRouter.delete("/:id", verifyToken, async (req, res, next) => {
 profilesRouter.get("/:Id/CV", async (req, res, next) => {
   try {
     const id = req.params.Id;
-    const profile = await ProfilesSchema.findById(id).select(["-password", "-email"]);
+    const profile = await ProfilesSchema.findById(id).select([
+      "-password",
+      "-email",
+    ]);
     const experiences = await ExperienceSchema.find({ user: id });
     if (profile) {
       const data = {
@@ -214,7 +266,11 @@ profilesRouter.get("/:Id/CV", async (req, res, next) => {
       <div class="mb-3 d-flex flex-column">
            <stong>${experience.company}</stong>
            <span> ${experience.role}</span>
-           <span>${moment(experience.startDate).format("MMMM YYYY")}- ${experience.endDate ? moment(experience.endDate).format("MMMM YYYY") : "Present"}</span>
+           <span>${moment(experience.startDate).format("MMMM YYYY")}- ${
+            experience.endDate
+              ? moment(experience.endDate).format("MMMM YYYY")
+              : "Present"
+          }</span>
            <span class="text-muted">${experience.area}</span>
       </div>`
         ),
