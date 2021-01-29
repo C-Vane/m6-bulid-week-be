@@ -26,6 +26,10 @@ const createPDF = require("./PDF/pdf-generator");
 
 const moment = require("moment");
 
+const sgMail = require("@sendgrid/mail");
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -73,7 +77,9 @@ profilesRouter.get("/user/:username", verifyToken, async (req, res, next) => {
 profilesRouter.get("/:username", async (req, res, next) => {
   try {
     const id = req.params.Id;
-    const profile = await ProfilesSchema.findOne({ username: req.params.username }).select(["-password", "-email"]);
+    const profile = await ProfilesSchema.findOne({
+      username: req.params.username,
+    }).select(["-password", "-email"]);
     if (profile) {
       res.send(profile);
     } else {
@@ -89,7 +95,9 @@ profilesRouter.get("/:username", async (req, res, next) => {
 //USER SIGN IN
 profilesRouter.post("/login", async (req, res, next) => {
   try {
-    const user = await ProfilesSchema.findOne({ $and: [{ $or: [{ username: req.body.user }, { email: req.body.user }] }, { password: req.body.password }] });
+    const user = await ProfilesSchema.findOne({
+      $and: [{ $or: [{ username: req.body.user }, { email: req.body.user }] }, { password: req.body.password }],
+    });
     if (user) {
       jwt.sign({ _id: user._id }, secretKey, (err, token) => {
         if (err) res.sendStatus(404);
@@ -112,8 +120,24 @@ profilesRouter.post("/", async (req, res, next) => {
       image: "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg",
       background: "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg",
     });
-    const user = await newprofile.save();
-    res.status(201).send(user);
+
+    const { email, password, username, name } = newprofile;
+
+    console.log(email);
+    if (email.length > 0) {
+      const msg = {
+        to: `${email}`,
+        from: "studentrichard4@gmail.com",
+        subject: "Welcome to our community",
+        text: "CONFIRMATION",
+        html: `<style>*{  background: url("https://wallpapercave.com/wp/wp4421266.jpg") no-repeat fixed center; background-size: cover; color:white;} div{text-align: center; color:green!important;}</style><strong>Thank you ${name} for joining our community. This is the confirmation mail with your credentials:<br/> <br/> <div>Username:${username} <br/>Password:${password}</div></strong>.<br/><br/><br/> Thank you for choosing Linkedin. <br/> -Team 0 S1- `,
+      };
+
+      await sgMail.send(msg);
+    }
+
+    const { _id } = await newprofile.save();
+    res.status(201).send(_id);
   } catch (error) {
     next(error);
   }

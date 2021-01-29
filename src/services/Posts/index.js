@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const { verifyToken } = require("../../utilities/errorHandler");
 const jwt = require("jsonwebtoken");
 const q2m = require("query-to-mongo");
+
 const secretKey = process.env.TOKEN_SECRET;
 // const fs = require("fs");
 // const MongoClient = require("mongodb").MongoClient;
@@ -45,19 +46,22 @@ const parser = multer({ storage: storage });
 //   }
 // });
 
-// route.get("/pdf", async (req, res, next) => {
-//   try {
-//     const allPost = await Post.find();
-//     const doc = new PDFDocument();
-//     doc.text("HI VANESSA AND RABEA. OPEN THE PDF :) ");
-//     doc.pipe(fs.createWriteStream("output4.pdf"));
-//     doc.end();
-//     res.status(200).send(allPost);
-//   } catch (error) {
-//     console.log(error);
-//     next(error);
-//   }
-// });
+route.get("/email", async (req, res, next) => {
+  try {
+    // const allPost = await Post.find();
+    // const doc = new PDFDocument();
+    // doc.text("HI VANESSA AND RABEA. OPEN THE PDF :) ");
+    // doc.pipe(fs.createWriteStream("output4.pdf"));
+    // doc.end();
+    res.status(200).send("EMAIL SENT");
+  } catch (error) {
+    console.log(error);
+    if (error.response) {
+      console.error(error.response.body);
+    }
+    next(error);
+  }
+});
 
 route.post("/:id/upload", verifyToken, parser.single("image"), async (req, res, next) => {
   try {
@@ -101,6 +105,7 @@ route.post("/", verifyToken, async (req, res, next) => {
         const myObj = {
           ...req.body,
         };
+
         const newPost = new Post(myObj);
         await newPost.save();
         res.status(201).send(newPost);
