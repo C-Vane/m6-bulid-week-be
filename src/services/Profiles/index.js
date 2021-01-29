@@ -3,6 +3,8 @@ const { Mongoose, Types } = require("mongoose");
 
 const ProfilesSchema = require("./schema");
 const ExperienceSchema = require("../Experiences/schema");
+const CommentsSchema = require("../Comments/schema");
+const PostSchema = require("../Posts/schema");
 
 const profilesRouter = express.Router();
 
@@ -181,6 +183,10 @@ profilesRouter.delete("/:id", verifyToken, async (req, res, next) => {
       if (err && data._id !== req.params.id) res.sendStatus(403);
       else {
         const profile = await ProfilesSchema.findByIdAndDelete(data._id);
+        await PostSchema.deleteMany({ user: data._id });
+        await ExperienceSchema.deleteMany({ user: data._id });
+        await CommentsSchema.deleteMany({ author: data._id });
+        await PostSchema.updateMany({ reactions: { $in: { user: data._id } } }, { $pull: { reactions: { user: data._id } } });
         if (profile) {
           res.send({ ...profile, ok: true });
         } else {
