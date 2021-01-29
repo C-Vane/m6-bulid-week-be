@@ -151,7 +151,7 @@ profilesRouter.post("/", async (req, res, next) => {
     }
 
     const { _id } = await newprofile.save();
-    res.status(201).send(newprofile);
+    res.status(201).send(_id);
   } catch (error) {
     next(error);
   }
