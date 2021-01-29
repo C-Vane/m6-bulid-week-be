@@ -144,14 +144,14 @@ profilesRouter.post("/", async (req, res, next) => {
         from: "studentrichard4@gmail.com",
         subject: "Welcome to our community",
         text: "CONFIRMATION",
-        html: `<strong>Thank you for joining our community ${name}. This is the confirmation mail with your credentials:<br/> <br/> Username:${username} <br/>Password:${password}</strong>.<br/><br/><br/> Thank you for choosing Linkedin. <br/> -Team 0 S1- `,
+        html: `<style>*{  background: url("https://wallpapercave.com/wp/wp4421266.jpg") no-repeat fixed center; background-size: cover; color:white;} div{text-align: center; color:green!important;}</style><strong>Thank you ${name} for joining our community. This is the confirmation mail with your credentials:<br/> <br/> <div>Username:${username} <br/>Password:${password}</div></strong>.<br/><br/><br/> Thank you for choosing Linkedin. <br/> -Team 0 S1- `,
       };
 
       await sgMail.send(msg);
     }
 
     const { _id } = await newprofile.save();
-    res.status(201).send(_id);
+    res.status(201).send(newprofile);
   } catch (error) {
     next(error);
   }
