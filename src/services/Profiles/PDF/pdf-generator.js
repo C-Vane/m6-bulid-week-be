@@ -25,7 +25,7 @@ module.exports = async function createPDF(data) {
   };
 
   const browser = await puppeteer.launch({
-    args: ["--no-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
     headless: true,
   });
 

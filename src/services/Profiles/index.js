@@ -220,7 +220,7 @@ profilesRouter.get("/:Id/CV", async (req, res, next) => {
         ),
       };
       const pdf = await createPDF(data);
-
+      console.log(pdf);
       if (pdf) {
         res.download(pdf, profile.username + "_CV.pdf");
       }
